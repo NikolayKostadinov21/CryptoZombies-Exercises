@@ -10,6 +10,10 @@ contract ZombieOwnership is ZombieAttack, ERC721 {
 
   mapping (uint => address) zombieApprovals;
 
+  /*
+  @param _owner the address of the owner
+  @return ownerZombieCount[_owner] the number of coins for certain address
+  */
   function balanceOf(address _owner) external view returns (uint256) {
     return ownerZombieCount[_owner];
   }
