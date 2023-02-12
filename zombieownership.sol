@@ -1,49 +1,38 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <title>CryptoZombies front-end</title>
-    <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <script language="javascript" type="text/javascript" src="web3.min.js"></script>
-    <script language="javascript" type="text/javascript" src="cryptozombies_abi.js"></script>
-  </head>
-  <body>
+pragma solidity >=0.5.0 <0.6.0;
 
-    <script>
-      var cryptoZombies;
+import "./zombieattack.sol";
+import "./erc721.sol";
+import "./safemath.sol";
 
-      function startApp() {
-        var cryptoZombiesAddress = "YOUR_CONTRACT_ADDRESS";
-        cryptoZombies = new web3js.eth.Contract(cryptoZombiesABI, cryptoZombiesAddress);
-      }
+contract ZombieOwnership is ZombieAttack, ERC721 {
 
-      function getZombieDetails(id) {
-        return cryptoZombies.methods.zombies(id).call();
-      }
+  using SafeMath for uint256;
 
-      function zombieToOwner(id) {
-        return cryptoZombies.methods.zombieToOwner(id).call();
-      }
+  mapping (uint => address) zombieApprovals;
 
-      function getZombiesByOwner(owner) {
-        return cryptoZombies.methods.getZombiesByOwner(owner).call();
-      }
+  function balanceOf(address _owner) external view returns (uint256) {
+    return ownerZombieCount[_owner];
+  }
 
-      window.addEventListener('load', function() {
+  function ownerOf(uint256 _tokenId) external view returns (address) {
+    return zombieToOwner[_tokenId];
+  }
 
-        // Checking if Web3 has been injected by the browser (Mist/MetaMask)
-        if (typeof web3 !== 'undefined') {
-          // Use Mist/MetaMask's provider
-          web3js = new Web3(web3.currentProvider);
-        } else {
-          // Handle the case where the user doesn't have Metamask installed
-          // Probably show them a message prompting them to install Metamask
-        }
+  function _transfer(address _from, address _to, uint256 _tokenId) private {
+    ownerZombieCount[_to] = ownerZombieCount[_to].add(1);
+    ownerZombieCount[msg.sender] = ownerZombieCount[msg.sender].sub(1);
+    zombieToOwner[_tokenId] = _to;
+    emit Transfer(_from, _to, _tokenId);
+  }
 
-        // Now you can start your app & access web3 freely:
-        startApp()
+  function transferFrom(address _from, address _to, uint256 _tokenId) external payable {
+      require (zombieToOwner[_tokenId] == msg.sender || zombieApprovals[_tokenId] == msg.sender);
+      _transfer(_from, _to, _tokenId);
+    }
 
-      })
-    </script>
-  </body>
-</html>
+  function approve(address _approved, uint256 _tokenId) external payable onlyOwnerOf(_tokenId) {
+      zombieApprovals[_tokenId] = _approved;
+      emit Approval(msg.sender, _approved, _tokenId);
+    }
+
+}
