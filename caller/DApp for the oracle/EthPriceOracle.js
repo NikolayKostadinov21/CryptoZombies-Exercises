@@ -14,18 +14,25 @@ async function getOracleContract (web3js) {
 }
 
 async function filterEvents (oracleContract, web3js) {
-    oracleContract.events.GetLatestEthPriceEvent(async (err, event) => {
-        if (err) {
-            console.error('Error on event', err)
-            return
-        }
-        await addRequestToQueue(event)
-    })
+  oracleContract.events.GetLatestEthPriceEvent(async (err, event) => {
+    if (err) {
+      console.error('Error on event', err)
+      return
+    }
+    await addRequestToQueue(event)
+  })
 
-    oracleContract.events.SetLatestEthPriceEvent(async (err, event) => {
-        if (err) {
-            console.error('Error on event', err)
-            return
-        }
-    })
+  oracleContract.events.SetLatestEthPriceEvent(async (err, event) => {
+    if (err) {
+      console.error('Error on event', err)
+      return
+    }
+    // Do something
+  })
+}
+
+async function addRequestToQueue(event) {
+    const callerAddress = event.returnValues.callerAddress
+    const id = event.returnValues.id
+    pendingRequests.push({callerAddress, id})
 }
