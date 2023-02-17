@@ -12,7 +12,6 @@ async function getZkSyncProvider (zksync, networkName) {
 async function getEthereumProvider (ethers, networkName) {
   let ethersProvider
   try {
-    // eslint-disable-next-line new-cap
     ethersProvider = new ethers.getDefaultProvider(networkName)
   } catch (error) {
     console.log('Could not connect to Rinkeby')
@@ -39,15 +38,37 @@ async function registerAccount (wallet) {
 }
 
 async function depositToZkSync (zkSyncWallet, token, amountToDeposit, ethers) {
-    const deposit = await zkSyncWallet.depositToSyncFromEthereum({
-        depositTo: zkSyncWallet.address(),
-        token: token,
-        amount: ethers.utils.parseEther(amountToDeposit)
-    })
-    try {
-        await deposit.awaitReceipt()
-    } catch (error) {
-        console.log('Error while awaiting confirmation from the zkSync operators.')
-        console.log(error)
-    }
+  const deposit = await zkSyncWallet.depositToSyncFromEthereum({
+    depositTo: zkSyncWallet.address(),
+    token: token,
+    amount: ethers.utils.parseEther(amountToDeposit)
+  })
+  try {
+    await deposit.awaitReceipt()
+  } catch (error) {
+    console.log('Error while awaiting confirmation from the zkSync operators.')
+    console.log(error)
+  }
+}
+
+async function transfer (from, toAddress, amountToTransfer, transferFee, token, zksync, ethers) {
+  const closestPackableAmount = zksync.utils.closestPackableTransactionAmount(
+    ethers.utils.parseEther(amountToTransfer))
+  const closestPackableFee = zksync.utils.closestPackableTransactionFee(
+    ethers.utils.parseEther(transferFee))
+
+  const transfer = await from.syncTransfer({
+    to: toAddress,
+    token: token,
+    amount: closestPackableAmount,
+    fee: closestPackableFee
+  })
+  const transferReceipt = await transfer.awaitReceipt()
+  console.log('Got transfer receipt.')
+  console.log(transferReceipt)
+}
+
+async function getFee(transactionType, address, token, zkSyncProvider, ethers) {
+    const feeInWei = await zkSyncProvider.getTransactionFee(transactionType, address, token)
+    return ethers.utils.formatEther(feeInWei.totalFee.toString())
 }
